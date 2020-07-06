@@ -5,7 +5,12 @@ import requests
 import re
 import os
 import numpy as np
+import matplotlib
+from matplotlib.font_manager import *
 import matplotlib.pyplot as plt
+
+matplotlib.matplotlib_fname()
+
 keyword=['抽菸','宿舍','社團','活動','同性','同志','通識','性騷擾','警衛','停車','教官','學生會','老師','遺失','換課','選課','女二宿','共A','共B','共C','共D','共E','車棚']
 ws = WS("C:/Users/shengkai/Documents/dcard爬蟲/data")
 pos = POS("C:/Users/shengkai/Documents/dcard爬蟲/data")
@@ -14,8 +19,12 @@ f2 = open("篩選後.html", "w" ,encoding = 'utf-8')
 f3 = open("篩選前.html", "w" ,encoding = 'utf-8')
 f2.write("<html><body><center><table width=800 height=200 border=1><tr><th>標題</th><th>關鍵字</th><th>情感分析</th><th>原文網址</th><th>文章日期</th></tr>")
 f3.write("<html><body><center><table width=800 height=200 border=1><tr><th>標題</th><th>關鍵字</th><th>情感分析</th><th>原文網址</th><th>文章日期</th></tr>")
-deaddate=7
+deaddate=6
 datecontent=[]
+datenum=[]
+likecontent=[]
+plt.rcParams['font.sans-serif']=['Microsoft JhengHei']
+plt.rcParams['axes.unicode_minus'] = False
 def Crawl(ID):
     keywordtemp=[]
     getkeyword=0
@@ -23,16 +32,21 @@ def Crawl(ID):
     requ = requests.get(link)
     rejs = requ.json()
     month=int(rejs['createdAt'][5:7])
-    day=rejs['createdAt'][0:10]
+    day=rejs['createdAt'][8:10]
     checkday=0
     for i in range(len(datecontent)):
         if datecontent[i] == day:
             checkday=1
-         
+            datenum[i]=datenum[i]+1
+            print(day+':文章數量'+str(datenum[i]))
+            if int(likecontent[i])<int(rejs['likeCount']):
+                likecontent[i]=rejs['likeCount']
     if month == deaddate:
-        print('yes')
+        print('符合月份')
         if checkday==0:
             datecontent.append(day)
+            datenum.append(1)
+            likecontent.append(rejs['likeCount'])
         #取得文章內圖片網址並下載
         if len(rejs['media']) >0:
             os.makedirs('C:/Users/shengkai/Documents/dcard爬蟲/img/'+str(rejs['id']),exist_ok=True)
@@ -138,11 +152,11 @@ def Crawl(ID):
         #print(text)
         return(pd.DataFrame(
             data=
-            [{#'ID':rejs['id'],
+            [{'ID':rejs['id'],
               '標題':rejs['title'],
               '內文':rejs['content'],
               #'excerpt':rejs['excerpt'],
-              #'createdAt':rejs['createdAt'],
+              'createdAt':rejs['createdAt'],
               #'updatedAt':rejs['updatedAt'],
               '回應次數':rejs['commentCount'],
               #'forumName':rejs['forumName'],
@@ -154,27 +168,57 @@ def Crawl(ID):
                '關鍵字':keywordtemp,}],
               #'media':rejs['media']}],
               #columns=['ID','title','content','excerpt','createdAt','updatedAt','commentCount','forumName','forumAlias','gender','likeCount','reactions','topics','media']
-              columns=['標題','內文','回應次數','性別','點讚數','關鍵字']
+              columns=['ID','標題','內文','回應次數','性別','點讚數','關鍵字','createdAt']
             ))
     else:
-        print('no')
+        print('不符合月份:'+rejs['createdAt'])
 url = 'https://www.dcard.tw/_api/forums/nptu/posts?popular=false&limit=50'
 #url2 = 'https://www.dcard.tw/_api/forums/nptu/posts?popular=false&limit=10'
 resq = requests.get(url)
 rejs = resq.json()
 df = pd.DataFrame()
 for i in range(len(rejs)):
-    df = df.append(Crawl(rejs[i]['id']),ignore_index=True)
+        kk=Crawl(rejs[i]['id'])
+        df = df.append(kk,ignore_index=True)
+# for j in range(0):
+    # last = str(int(df.tail(1).ID)) 
+    # url = 'https://www.dcard.tw/_api/forums/nptu/posts?popular=false&limit=100&before=' + last
+    # resq = requests.get(url)
+    # rejs = resq.json()
+    # for i in range(len(rejs)):
+        # kk=Crawl(rejs[i]['id'])
+        # df = df.append(kk,ignore_index=True)
 print(df.shape)
 df
 
+print(datenum)
+print(datecontent)
+datenum.reverse()
+datecontent.reverse()
 fig = plt.figure()
 plt.xticks(range(len(datecontent)),datecontent, rotation=45)
-plt.show()
+plt.ylim(1,max(datenum)+3)
+plt.ylabel(u'發文數量')
+plt.xlabel(u'發文日期')
+plt.plot(range(len(datecontent)),datenum,'-',color='b')
+plt.plot(range(len(datecontent)),datenum,'.',color='r')
+#plt.show()
+plt.tight_layout()
+plt.savefig('postnum', dpi=400)
+
+fig = plt.figure()
+plt.xticks(range(len(datecontent)),datecontent, rotation=45)
+plt.ylim(1,max(likecontent)+3)
+plt.ylabel(u'愛心數量')
+plt.xlabel(u'發文日期')
+plt.plot(range(len(datecontent)),likecontent,'-',color='b')
+plt.plot(range(len(datecontent)),likecontent,'.',color='r')
+#plt.show()
+plt.tight_layout()
+plt.savefig('like.png', dpi=400)
 
 f2.write("</table></body></center></html>")
 f2.close
 f3.write("</table></body></center></html>")
 f3.close
 df.to_excel('C:/Users/shengkai/Documents/dcard爬蟲/熱門.xlsx')
-print(datecontent)
