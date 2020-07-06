@@ -17,11 +17,13 @@ pos = POS("C:/Users/shengkai/Documents/dcard爬蟲/data")
 ner = NER("C:/Users/shengkai/Documents/dcard爬蟲/data")
 f2 = open("篩選後.html", "w" ,encoding = 'utf-8')
 f3 = open("篩選前.html", "w" ,encoding = 'utf-8')
-f2.write("<html><body><center><table width=800 height=200 border=1><tr><th>標題</th><th>關鍵字</th><th>情感分析</th><th>原文網址</th><th>文章日期</th></tr>")
-f3.write("<html><body><center><table width=800 height=200 border=1><tr><th>標題</th><th>關鍵字</th><th>情感分析</th><th>原文網址</th><th>文章日期</th></tr>")
+f2.write("<!doctype html><html><head><meta name='viewport' content='width=device-width, initial-scale=1, shrink-to-fit=no'></head><link rel='stylesheet' type='text/css' href='custom.css' /><link rel='stylesheet' href='https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css' integrity='sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh' crossorigin='anonymous'><body><center><div class='container table-responsive'><table class='table table-bordered table-active' width=800 height=200 border=1><tr><thead class='thead-dark'><th>標題</th><th>關鍵字</th><th>情感分析</th><th>原文網址</th><th>文章日期</th></thead></tr>")
+f3.write("<!doctype html><html><head><meta name='viewport' content='width=device-width, initial-scale=1, shrink-to-fit=no'></head><link rel='stylesheet' type='text/css' href='custom.css' /><link rel='stylesheet' href='https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css' integrity='sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh' crossorigin='anonymous'><body><center><div class='container table-responsive'><table class='table table-bordered table-active' width=800 height=200 border=1><tr><thead class='thead-dark'><th>標題</th><th>關鍵字</th><th>情感分析</th><th>原文網址</th><th>文章日期</th></thead></tr>")
 deaddate=6
 datecontent=[]
 datenum=[]
+keywordcontent=[]
+keywordnum=[]
 likecontent=[]
 plt.rcParams['font.sans-serif']=['Microsoft JhengHei']
 plt.rcParams['axes.unicode_minus'] = False
@@ -34,6 +36,8 @@ def Crawl(ID):
     month=int(rejs['createdAt'][5:7])
     day=rejs['createdAt'][8:10]
     checkday=0
+    checkkeyword=0
+    #日期收集與文章數量計算
     for i in range(len(datecontent)):
         if datecontent[i] == day:
             checkday=1
@@ -41,6 +45,9 @@ def Crawl(ID):
             print(day+':文章數量'+str(datenum[i]))
             if int(likecontent[i])<int(rejs['likeCount']):
                 likecontent[i]=rejs['likeCount']
+    
+         
+    
     if month == deaddate:
         print('符合月份')
         if checkday==0:
@@ -69,6 +76,15 @@ def Crawl(ID):
         for i in range(len(keyword)):
             if text.find(keyword[i]) !=-1 or title.find(keyword[i]) !=-1:
                 getkeyword=1
+                #計算找到關鍵字的數量
+                for j in range(len(keywordcontent)):
+                    if keywordcontent[j] == keyword[i]:
+                        checkkeyword=1
+                        keywordnum[j]=keywordnum[j]+1
+                if checkkeyword==0:
+                    keywordcontent.append(keyword[i])   
+                    keywordnum.append(1)
+                checkkeyword=0        
                 f3.write(str(keyword[i])+" ")
         f3.write("</td>")        
         if getkeyword==1:
@@ -108,7 +124,7 @@ def Crawl(ID):
                 #f2.write("此篇分析為負面"+str(s_senti))
                 f2.write("此篇分析為負面")
             f2.write("</td>")
-            f2.write("<td><a href='https://www.dcard.tw/f/nptu/p/"+str(ID)+"'>點我</a></td><td>"+day+"</td></tr>")
+            f2.write("<td><a href='https://www.dcard.tw/f/nptu/p/"+str(ID)+"'>點我</a></td><td>"+str(month)+"-"+day+"</td></tr>")
             
         f3.write("<td>")    
         if s_senti >= 0.6:
@@ -118,7 +134,7 @@ def Crawl(ID):
             #f3.write("此篇分析為負面"+str(s_senti))
             f3.write("此篇分析為負面")
         f3.write("</td>")
-        f3.write("<td><a href='https://www.dcard.tw/f/nptu/p/"+str(ID)+"'>點我</a></td><td>"+day+"</td></tr>")  
+        f3.write("<td><a href='https://www.dcard.tw/f/nptu/p/"+str(ID)+"'>點我</a></td><td>"+str(month)+"-"+day+"</td></tr>")  
         x=0
         x2=0
         f.write("文章內容:")
@@ -180,7 +196,7 @@ df = pd.DataFrame()
 for i in range(len(rejs)):
         kk=Crawl(rejs[i]['id'])
         df = df.append(kk,ignore_index=True)
-# for j in range(0):
+# for j in range(5):
     # last = str(int(df.tail(1).ID)) 
     # url = 'https://www.dcard.tw/_api/forums/nptu/posts?popular=false&limit=100&before=' + last
     # resq = requests.get(url)
@@ -217,8 +233,23 @@ plt.plot(range(len(datecontent)),likecontent,'.',color='r')
 plt.tight_layout()
 plt.savefig('like.png', dpi=400)
 
-f2.write("</table></body></center></html>")
+fig = plt.figure()
+plt.xticks(range(len(keywordcontent)),keywordcontent, rotation=45)
+plt.ylim(0,max(keywordnum)+3)
+plt.ylabel(u'關鍵字出現次數')
+plt.xlabel(u'關鍵字')
+plt.bar(range(len(keywordnum)),keywordnum)
+#plt.show()
+plt.tight_layout()
+plt.savefig('keyword.png', dpi=400)
+
+
+f2.write("</table></div><div class='container custom-container-width'><img src='like.png' class='img-fluid' alt='Responsive image'><img src='postnum.png' class='img-fluid' alt='Responsive image'><img src='keyword.png' class='img-fluid' alt='Responsive image'></div>")
+f2.write("</center></body><script src='https://code.jquery.com/jquery-3.4.1.slim.min.js' integrity='sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n' crossorigin='anonymous'></script><script src='https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js' integrity='sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo' crossorigin='anonymous'></script><script src='https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js' integrity='sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6' crossorigin='anonymous></script></html>")
 f2.close
-f3.write("</table></body></center></html>")
+f3.write("</table></div><div class='container custom-container-width'><img src='like.png' class='img-fluid' alt='Responsive image'><img src='postnum.png' class='img-fluid' alt='Responsive image'><img src='keyword.png' class='img-fluid' alt='Responsive image'></div>")
+f3.write("</center></body><script src='https://code.jquery.com/jquery-3.4.1.slim.min.js' integrity='sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n' crossorigin='anonymous'></script><script src='https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js' integrity='sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo' crossorigin='anonymous'></script><script src='https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js' integrity='sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6' crossorigin='anonymous></script></html>")
 f3.close
 df.to_excel('C:/Users/shengkai/Documents/dcard爬蟲/熱門.xlsx')
+print(keywordcontent)
+print(keywordnum)
