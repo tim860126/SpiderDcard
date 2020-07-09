@@ -38,17 +38,18 @@ def Crawl(ID):
     checkday=0
     checkkeyword=0
     #日期收集與文章數量計算
-    for i in range(len(datecontent)):
-        if datecontent[i] == day:
-            checkday=1
-            datenum[i]=datenum[i]+1
-            print(day+':文章數量'+str(datenum[i]))
-            if int(likecontent[i])<int(rejs['likeCount']):
-                likecontent[i]=rejs['likeCount']
+    
     
          
     
     if month == deaddate:
+        for i in range(len(datecontent)):
+            if datecontent[i] == day:
+                checkday=1
+                datenum[i]=datenum[i]+1
+                print(day+':文章數量'+str(datenum[i]))
+                if int(likecontent[i])<int(rejs['likeCount']):
+                    likecontent[i]=rejs['likeCount']
         print('符合月份')
         if checkday==0:
             datecontent.append(day)
@@ -196,14 +197,14 @@ df = pd.DataFrame()
 for i in range(len(rejs)):
         kk=Crawl(rejs[i]['id'])
         df = df.append(kk,ignore_index=True)
-# for j in range(5):
-    # last = str(int(df.tail(1).ID)) 
-    # url = 'https://www.dcard.tw/_api/forums/nptu/posts?popular=false&limit=100&before=' + last
-    # resq = requests.get(url)
-    # rejs = resq.json()
-    # for i in range(len(rejs)):
-        # kk=Crawl(rejs[i]['id'])
-        # df = df.append(kk,ignore_index=True)
+for j in range(5):
+    last = str(int(df.tail(1).ID)) 
+    url = 'https://www.dcard.tw/_api/forums/nptu/posts?popular=false&limit=100&before=' + last
+    resq = requests.get(url)
+    rejs = resq.json()
+    for i in range(len(rejs)):
+        kk=Crawl(rejs[i]['id'])
+        df = df.append(kk,ignore_index=True)
 print(df.shape)
 df
 
@@ -227,6 +228,7 @@ plt.xticks(range(len(datecontent)),datecontent, rotation=45)
 plt.ylim(1,max(likecontent)+3)
 plt.ylabel(u'愛心數量')
 plt.xlabel(u'發文日期')
+plt.title("發文日期最高愛心數量")
 plt.plot(range(len(datecontent)),likecontent,'-',color='b')
 plt.plot(range(len(datecontent)),likecontent,'.',color='r')
 #plt.show()
@@ -238,17 +240,43 @@ plt.xticks(range(len(keywordcontent)),keywordcontent, rotation=45)
 plt.ylim(0,max(keywordnum)+3)
 plt.ylabel(u'關鍵字出現次數')
 plt.xlabel(u'關鍵字')
+plt.title("關鍵字出現統計")
 plt.bar(range(len(keywordnum)),keywordnum)
 #plt.show()
 plt.tight_layout()
 plt.savefig('keyword.png', dpi=400)
 
 
-f2.write("</table></div><div class='container custom-container-width'><img src='like.png' class='img-fluid' alt='Responsive image'><img src='postnum.png' class='img-fluid' alt='Responsive image'><img src='keyword.png' class='img-fluid' alt='Responsive image'></div>")
-f2.write("</center></body><script src='https://code.jquery.com/jquery-3.4.1.slim.min.js' integrity='sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n' crossorigin='anonymous'></script><script src='https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js' integrity='sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo' crossorigin='anonymous'></script><script src='https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js' integrity='sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6' crossorigin='anonymous></script></html>")
+f2.write("</table></div><div class='container custom-container-width'><img src='like.png' class='img-fluid' alt='Responsive image'>")
+f2.write("<div class='container table-responsive'><table class='table table-bordered table-active' width=800 height=200 border=1><tr><thead class='thead-dark'><th>點讚數</th><th>標題</th><th>網頁連結</th></thead></tr>")
+f3.write("</table></div><div class='container custom-container-width'><img src='like.png' class='img-fluid' alt='Responsive image'>")
+f3.write("<div class='container table-responsive'><table class='table table-bordered table-active' width=800 height=200 border=1><tr><thead class='thead-dark'><th>點讚數</th><th>標題</th><th>網頁連結</th></thead></tr>")
+
+likeindex=df.sort_values('點讚數',ascending=False).index
+
+dfgenF=len(df[df['性別']=='F'])
+dfgenM=len(df[df['性別']=='M'])
+dfgender=[dfgenF,dfgenM]
+genderlabel=['女生','男生']
+gendercolor=['#ff0000', '#5b00ae']
+fig = plt.figure()
+plt.pie(dfgender,labels=genderlabel,colors=gendercolor,autopct = "%0.2f%%",center = (0,0))
+plt.legend(loc = "best")
+plt.title("發文男女比例")
+#plt.show()
+plt.savefig('gender.png', dpi=300)
+
+for i in range(3):
+    dftitle=df.at[likeindex[i],'標題']
+    dflike=df.at[likeindex[i],'點讚數']
+    dfID=df.at[likeindex[i],'ID']
+    f2.write("<tr><td>讚數:"+str(dflike)+"</td><td>"+str(dftitle)+"</td><td><a href='https://www.dcard.tw/f/nptu/p/"+str(dfID)+"'>點我</a></td></tr>")
+    f3.write("<tr><td>讚數:"+str(dflike)+"</td><td>"+str(dftitle)+"</td><td><a href='https://www.dcard.tw/f/nptu/p/"+str(dfID)+"'>點我</a></td></tr>")
+    
+f2.write("</table></div></div></center></body><script src='https://code.jquery.com/jquery-3.4.1.slim.min.js' integrity='sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n' crossorigin='anonymous'></script><script src='https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js' integrity='sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo' crossorigin='anonymous'></script><script src='https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js' integrity='sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6' crossorigin='anonymous></script></html>")
 f2.close
-f3.write("</table></div><div class='container custom-container-width'><img src='like.png' class='img-fluid' alt='Responsive image'><img src='postnum.png' class='img-fluid' alt='Responsive image'><img src='keyword.png' class='img-fluid' alt='Responsive image'></div>")
-f3.write("</center></body><script src='https://code.jquery.com/jquery-3.4.1.slim.min.js' integrity='sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n' crossorigin='anonymous'></script><script src='https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js' integrity='sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo' crossorigin='anonymous'></script><script src='https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js' integrity='sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6' crossorigin='anonymous></script></html>")
+
+f3.write("</table></div></div></center></body><script src='https://code.jquery.com/jquery-3.4.1.slim.min.js' integrity='sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n' crossorigin='anonymous'></script><script src='https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js' integrity='sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo' crossorigin='anonymous'></script><script src='https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js' integrity='sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6' crossorigin='anonymous></script></html>")
 f3.close
 df.to_excel('C:/Users/shengkai/Documents/dcard爬蟲/熱門.xlsx')
 print(keywordcontent)
